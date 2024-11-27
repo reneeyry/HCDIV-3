@@ -3,188 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic GDP Bar Chart</title>
+    <title>4-Room HDB Resale Prices (2018-2024)</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        #chart-container {
-            margin: 0 auto;
-            width: 95%;
-            max-width: 1400px;
-            height: 80vh; /* 高度自适应 */
-            background-color: white;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            padding: 20px;
-        }
+
         h1 {
+            font-size: 24px;
             text-align: center;
-            font-size: 2.5em;
             margin: 20px 0;
-            color: #333;
         }
-        .bar {
-            fill-opacity: 0.8;
-            transition: all 0.5s;
+
+        p {
+            font-size: 16px;
+            text-align: center;
+            margin: 0 auto 20px;
+            max-width: 800px;
         }
-        .bar:hover {
-            fill-opacity: 1;
+
+        #chart-container {
+            display: flex;
+            justify-content: center;
+            width: 1000px; /* Adjusted to show the legend */
+            height: 600px;
         }
-        .label {
-            font-size: 14px;
-            font-weight: bold;
-            fill: #444;
+
+        svg {
+            width: 100%;
+            height: 100%;
         }
-        .year {
-            font-size: 48px;
-            text-anchor: middle;
-            fill: #444;
-            font-weight: bold;
+
+        .tooltip {
+            position: absolute;
+            background-color: #f9f9f9;
+            border: 1px solid #d3d3d3;
+            border-radius: 5px;
+            padding: 5px;
+            font-size: 12px;
+            pointer-events: none;
+            box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.2);
+            display: none;
         }
     </style>
 </head>
 <body>
-    <header style="background-color: #f4f4f4; padding: 30px 0; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-        <div style="max-width: 1200px; margin: 0 auto; text-align: center; padding: 0 20px;">
-            <h2 style="font-size: 1.8em; color: #333; margin: 0;">
-                Dynamic GDP Visualization
-            </h2>
-            <p style="font-size: 1.2em; color: #555; margin: 10px 0 0; line-height: 1.6;">
-                This webpage dynamically showcases GDP data of various countries from 1988 to 2022 using a bar chart. 
-                The data highlights the economic growth and changes over the years. 
-                <br>
-                <span style="font-size: 1em; color: #888;">(Data from <a href="https://data.worldbank.org" target="_blank" style="color: #0073e6; text-decoration: none;">data.worldbank.org</a>)</span>
-                <br>
-                <span style="font-size: 1em; color: #666;">Student: YANGRUIYUN</span>
-            </p>
-        </div>
-    </header>
-    <div id="chart-container"></div>
+    <h1>4-Room HDB Resale Prices in Bedok, Clementi, Geylang, and Tampines (2018-2024)</h1>
+    <div style="font-size: 14px; background-color: #fffacd; padding: 10px; border-radius: 5px; text-align: center; max-width: 800px; margin-bottom: 20px;">
+        <p>The table shows the average resale prices of 4-room flats in Bedok, Clementi, Geylang, and Tampines from 2018 to 2024.</p>
+        <p>The data is sourced from HDB's public records, focusing on 4-room flats in these four areas.</p>
+        <p>From 2018 to 2023, Clementi had the highest average resale price for 4-room flats. However, in 2024, Geylang surpassed Clementi, exceeding SGD 750,000 to rank first. The prices in the other two areas were similar. Overall, the average resale prices in all four areas showed an upward trend.</p>
+    </div>
+    <p>The chart shows the resale price trends of 4-room flats in selected areas of Singapore from 2018 to 2024.</p>
+    <div id="chart-container">
+        <svg id="chart"></svg>
+    </div>
+    <div class="tooltip" id="tooltip"></div>
     <script>
-        // GDP 数据
-        const gdpData = {
-            "USA": [5236.44, 5641.58, 5963.14, 6158.13, 6520.33, 6858.56, 7287.24, 7639.75, 8073.12, 8577.55, 9062.82, 9631.17, 10250.95, 10581.93, 10929.11, 11456.44, 12217.19, 13039.2, 13815.59, 14474.23, 14769.86, 14478.06, 15048.96, 15599.73, 16253.97, 16843.19, 17550.68, 18206.02, 18695.11, 19477.34, 20533.06, 21380.98, 21060.47, 23315.08, 25462.7],
-"China": [312.35, 347.77, 360.86, 383.37, 426.92, 444.73, 564.32, 734.48, 863.75, 961.6, 1029.06, 1094.01, 1211.33, 1339.4, 1470.56, 1660.28, 1955.35, 2285.96, 2752.12, 3550.33, 4594.34, 5101.69, 6087.19, 7551.55, 8532.19, 9570.47, 10475.62, 11061.57, 11233.31, 12310.49, 13894.91, 14279.97, 14687.74, 17820.46, 17963.17],
-"Japan": [3071.68, 3054.91, 3132.82, 3584.42, 3908.81, 4454.14, 4998.8, 5545.56, 4923.39, 4492.45, 4098.36, 4635.98, 4968.36, 4374.71, 4182.85, 4519.56, 4893.12, 4831.47, 4601.66, 4579.75, 5106.68, 5289.49, 5759.07, 6233.15, 6272.36, 5212.33, 4896.99, 4444.93, 5003.68, 4930.84, 5040.88, 5117.99, 5048.79, 5005.54, 4231.14],
-"Germany": [1401.23, 1398.97, 1771.67, 1868.95, 2131.57, 2071.32, 2205.07, 2585.79, 2497.24, 2211.99, 2238.99, 2194.95, 1947.98, 1945.79, 2078.48, 2501.64, 2814.35, 2846.86, 2994.7, 3425.58, 3745.26, 3411.26, 3399.67, 3749.31, 3527.14, 3733.8, 3889.09, 3357.59, 3469.85, 3690.85, 3974.44, 3888.23, 3889.67, 4259.93, 4072.19],
-"India": [296.59, 296.04, 320.98, 270.11, 288.21, 279.3, 327.28, 360.28, 392.9, 415.87, 421.35, 458.82, 468.39, 485.44, 514.94, 607.7, 709.15, 820.38, 940.26, 1216.74, 1198.9, 1341.89, 1675.62, 1823.05, 1827.64, 1856.72, 2039.13, 2103.59, 2294.8, 2651.47, 2702.93, 2835.61, 2671.6, 3150.31, 3385.09],
-"United Kingdom": [910.17, 926.93, 1093.21, 1142.77, 1179.71, 1061.46, 1140.44, 1346.25, 1421.71, 1561.72, 1655, 1689.41, 1666.05, 1648.77, 1785.78, 2056.7, 2423.05, 2544.81, 2709.98, 3093, 2931.68, 2417.57, 2491.4, 2666.4, 2706.34, 2786.32, 3065.22, 2934.86, 2699.66, 2683.49, 2878.15, 2857.06, 2704.61, 3122.48, 3070.67],
-"France": [1018.85, 1025.21, 1269.18, 1269.28, 1401.47, 1322.82, 1393.98, 1601.09, 1605.68, 1452.88, 1503.11, 1493.15, 1365.64, 1377.66, 1501.41, 1844.54, 2119.63, 2196.95, 2320.54, 2660.59, 2930.3, 2700.89, 2645.19, 2865.16, 2683.67, 2811.88, 2855.96, 2439.19, 2472.96, 2595.15, 2790.96, 2728.87, 2639.01, 2957.88, 2782.91],
-"Canada": [509.38, 567.23, 596.09, 612.51, 594.38, 579.06, 579.94, 605.94, 630.6, 654.99, 634, 678.41, 744.77, 738.96, 760.65, 895.54, 1026.69, 1173.11, 1319.26, 1468.82, 1552.99, 1374.63, 1617.34, 1793.33, 1828.37, 1846.6, 1805.75, 1556.51, 1527.99, 1649.27, 1725.3, 1743.73, 1647.6, 2001.49, 2139.84],
-"Brazil": [307.88, 412.99, 464.99, 407.73, 390.57, 438.3, 546.23, 769.33, 850.43, 883.21, 863.71, 599.64, 655.45, 559.98, 509.8, 558.23, 669.29, 891.63, 1107.63, 1397.11, 1695.86, 1667, 2208.84, 2616.16, 2465.23, 2472.82, 2456.04, 1802.21, 1795.69, 2063.51, 1916.93, 1873.29, 1476.11, 1649.62, 1920.1],
-"Australia": [236.15, 299.88, 311.43, 325.98, 325.53, 312.14, 322.81, 368.14, 401.31, 435.61, 399.66, 389.39, 415.84, 379.36, 395.57, 467.5, 614.33, 695.31, 747.91, 854.43, 1055.69, 928.63, 1148.57, 1398.46, 1546.95, 1576.33, 1467.59, 1350.58, 1206.56, 1326.47, 1428.27, 1392.22, 1326.94, 1552.7, 1675.42],
-"Korea, Rep.": [199.59, 246.93, 283.37, 330.65, 355.53, 392.67, 463.62, 566.58, 610.17, 569.75, 383.33, 497.51, 576.18, 547.66, 627.25, 702.72, 793.18, 934.9, 1053.22, 1172.61, 1047.34, 943.94, 1144.07, 1253.22, 1278.43, 1370.8, 1484.32, 1465.77, 1500.11, 1623.9, 1724.85, 1651.42, 1644.31, 1810.96, 1665.25],
-"Spain": [376.16, 414.76, 536.56, 577.17, 630.92, 525.08, 530.56, 614.61, 642.59, 590.08, 619.21, 634.91, 598.36, 627.83, 708.76, 907.49, 1069.06, 1153.72, 1260.4, 1474, 1631.86, 1491.47, 1422.11, 1480.71, 1324.75, 1355.58, 1371.82, 1196.16, 1233.55, 1313.25, 1421.7, 1394.32, 1276.96, 1427.38, 1397.51],
-"Indonesia": [84.3, 94.45, 106.14, 116.62, 128.03, 158.01, 176.89, 202.13, 227.37, 215.75, 95.45, 140, 165.02, 160.45, 195.66, 234.77, 256.84, 285.87, 364.57, 432.22, 510.23, 539.58, 755.09, 892.97, 917.87, 912.52, 890.81, 860.85, 931.88, 1015.62, 1042.27, 1119.1, 1059.05, 1186.51, 1319.1],
-"Thailand": [61.67, 72.25, 85.34, 98.23, 111.45, 128.89, 146.68, 169.28, 183.04, 150.18, 113.68, 126.67, 126.39, 120.3, 134.3, 152.28, 172.9, 189.32, 221.76, 262.94, 291.38, 281.71, 341.1, 370.82, 397.56, 420.33, 407.34, 401.3, 413.37, 456.36, 506.75, 543.98, 500.46, 505.57, 495.34],
-"Austria": [133.34, 133.11, 166.46, 173.79, 195.08, 190.38, 203.54, 241.04, 237.25, 212.79, 218.26, 217.26, 197.29, 197.51, 214.39, 262.27, 301.46, 316.09, 336.28, 389.19, 432.05, 401.76, 392.28, 431.69, 409.4, 430.19, 442.58, 381.97, 395.84, 417.26, 454.99, 444.62, 435.23, 480.37, 471.4],
-"Singapore": [25.37, 30.47, 36.14, 45.47, 52.13, 60.6, 73.69, 87.81, 96.29, 100.12, 85.73, 86.29, 96.08, 89.79, 92.54, 97.65, 115.03, 127.81, 148.63, 180.94, 193.62, 194.15, 239.81, 279.36, 295.09, 307.58, 314.86, 308, 319.03, 343.27, 376.87, 376.84, 348.39, 423.8, 466.79],
-"Malaysia": [35.27, 38.85, 44.02, 49.14, 59.17, 66.89, 74.48, 88.71, 100.86, 100.01, 72.17, 79.15, 93.79, 92.78, 100.85, 110.2, 124.75, 143.53, 162.69, 193.55, 230.81, 202.26, 255.02, 297.95, 314.44, 323.28, 338.07, 301.35, 301.26, 319.11, 358.79, 365.18, 337.34, 372.98, 406.31],
-"Hong Kong, China": [59.71, 68.79, 76.93, 88.96, 104.27, 120.35, 135.81, 144.65, 159.72, 177.35, 168.89, 165.77, 171.67, 169.4, 166.35, 161.39, 169.1, 181.57, 193.54, 211.6, 219.28, 214.05, 228.64, 248.51, 262.63, 275.7, 291.46, 309.39, 320.86, 341.27, 361.73, 363.07, 344.94, 368.91, 359.84],
-"New Zealand": [45.18, 43.92, 45.5, 42.74, 41.65, 46.78, 55.31, 63.92, 70.14, 66.07, 56.23, 58.76, 52.62, 53.87, 66.63, 88.25, 103.91, 114.72, 111.54, 137.19, 133.13, 121.37, 146.52, 168.29, 176.21, 190.91, 201.31, 178.06, 188.84, 206.56, 211.89, 213.09, 212.57, 255.55, 247.23],
-"South Africa":[103.98, 108.06, 126.05, 135.2, 146.96, 147.19, 153.51, 171.74, 163.23, 168.98, 152.98, 151.52, 151.75, 135.43, 129.09, 197.02, 255.81, 288.87, 303.86, 333.08, 316.13, 329.75, 417.36, 458.2, 434.4, 400.89, 381.2, 346.71, 323.59, 381.45, 404.16, 388.53, 337.62, 419.02, 405.87]
-        };
+        const fullData = [
+            { "Year": 2018, "Town": "BEDOK", "ResalePrice": 432483.60 },
+            { "Year": 2018, "Town": "CLEMENTI", "ResalePrice": 579110.64 },
+            { "Year": 2018, "Town": "GEYLANG", "ResalePrice": 521626.54 },
+            { "Year": 2018, "Town": "TAMPINES", "ResalePrice": 433655.52 },
+            { "Year": 2019, "Town": "BEDOK", "ResalePrice": 426143.42 },
+            { "Year": 2019, "Town": "CLEMENTI", "ResalePrice": 530723.11 },
+            { "Year": 2019, "Town": "GEYLANG", "ResalePrice": 513336.08 },
+            { "Year": 2019, "Town": "TAMPINES", "ResalePrice": 442787.44 },
+            { "Year": 2020, "Town": "BEDOK", "ResalePrice": 444349.37 },
+            { "Year": 2020, "Town": "CLEMENTI", "ResalePrice": 565492.73 },
+            { "Year": 2020, "Town": "GEYLANG", "ResalePrice": 547268.10 },
+            { "Year": 2020, "Town": "TAMPINES", "ResalePrice": 450558.00 },
+            { "Year": 2021, "Town": "BEDOK", "ResalePrice": 488178.00 },
+            { "Year": 2021, "Town": "CLEMENTI", "ResalePrice": 639688.00 },
+            { "Year": 2021, "Town": "GEYLANG", "ResalePrice": 589537.00 },
+            { "Year": 2021, "Town": "TAMPINES", "ResalePrice": 487412.00 },
+            { "Year": 2022, "Town": "BEDOK", "ResalePrice": 508718.00 },
+            { "Year": 2022, "Town": "CLEMENTI", "ResalePrice": 657930.00 },
+            { "Year": 2022, "Town": "GEYLANG", "ResalePrice": 597186.00 },
+            { "Year": 2022, "Town": "TAMPINES", "ResalePrice": 535050.00 },
+            { "Year": 2023, "Town": "BEDOK", "ResalePrice": 572050.00 },
+            { "Year": 2023, "Town": "CLEMENTI", "ResalePrice": 671117.00 },
+            { "Year": 2023, "Town": "GEYLANG", "ResalePrice": 640617.00 },
+            { "Year": 2023, "Town": "TAMPINES", "ResalePrice": 577373.00 },
+            { "Year": 2024, "Town": "BEDOK", "ResalePrice": 592193.00 },
+            { "Year": 2024, "Town": "CLEMENTI", "ResalePrice": 723283.00 },
+            { "Year": 2024, "Town": "GEYLANG", "ResalePrice": 771971.00 },
+            { "Year": 2024, "Town": "TAMPINES", "ResalePrice": 636474.00 }
+        ];
 
-        const years = Array.from({ length: 35 }, (_, i) => 1985 + i);
+        const margin = { top: 50, right: 150, bottom: 50, left: 80 };
+        const width = 900 - margin.left - margin.right;
+        const height = 600 - margin.top - margin.bottom;
 
-        // 使用兼容 D3 v7 的颜色比例尺
-        const colors = d3.schemeTableau10.concat(d3.schemeSet3);
+        const svg = d3.select("#chart")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
 
-        const colorScale = d3
-            .scaleOrdinal()
-            .domain(Object.keys(gdpData))
-            .range(colors.slice(0, Object.keys(gdpData).length));
+        const xScale = d3.scaleLinear()
+            .domain([2018, 2024])
+            .range([0, width]);
 
-        // 图表设置
-        const container = d3.select("#chart-container");
-        const width = container.node().getBoundingClientRect().width;
-        const height = container.node().getBoundingClientRect().height;
+        const yScale = d3.scaleLinear()
+            .domain([400000, 800000])
+            .range([height, 0]);
 
-        const margin = { top: 50, right: 50, bottom: 50, left: 200 };
-        const barHeight = 25;
-        const duration = 2000;
+        const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
 
-        const svg = container
-            .append("svg")
-            .attr("width", width)
-            .attr("height", height);
+        svg.append("g")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(xScale).ticks(7).tickFormat(d3.format("d")));
 
-        const xScale = d3.scaleLinear().range([margin.left, width - margin.right]);
-        const yScale = d3.scaleBand().range([margin.top, height - margin.bottom]).padding(0.1);
+        svg.append("g")
+            .call(d3.axisLeft(yScale).ticks(8).tickFormat(d => d / 1000 + "k"));
 
-        const yearText = svg
-            .append("text")
-            .attr("class", "year")
-            .attr("x", width / 2)
-            .attr("y", margin.top / 2);
+        const line = d3.line()
+            .x(d => xScale(d.Year))
+            .y(d => yScale(d.ResalePrice));
 
-        const updateChart = (yearIndex) => {
-            const data = Object.entries(gdpData).map(([country, gdp]) => ({
-                country,
-                gdp: gdp[yearIndex],
-            }));
-            data.sort((a, b) => b.gdp - a.gdp);
+        const tooltip = d3.select("#tooltip");
 
-            xScale.domain([0, d3.max(data, (d) => d.gdp)]);
-            yScale.domain(data.map((d) => d.country));
+        const groupedData = d3.groups(fullData, d => d.Town);
 
-            yearText.text(years[yearIndex]);
+        groupedData.forEach(([key, values]) => {
+            svg.append("path")
+                .datum(values)
+                .attr("fill", "none")
+                .attr("stroke", colorScale(key))
+                .attr("stroke-width", 2)
+                .attr("d", line);
 
-            const bars = svg.selectAll(".bar").data(data, (d) => d.country);
-
-            // 处理进入的条形
-            const enter = bars
+            svg.selectAll(`circle-${key}`)
+                .data(values)
                 .enter()
-                .append("rect")
-                .attr("class", "bar")
-                .attr("x", xScale(0))
-                .attr("y", (d) => yScale(d.country))
-                .attr("width", (d) => xScale(d.gdp) - xScale(0))
-                .attr("height", barHeight)
-                .attr("fill", (d) => colorScale(d.country));
+                .append("circle")
+                .attr("cx", d => xScale(d.Year))
+                .attr("cy", d => yScale(d.ResalePrice))
+                .attr("r", 4)
+                .attr("fill", colorScale(key))
+                .on("mouseover", (event, d) => {
+                    tooltip.style("display", "block")
+                        .style("left", event.pageX + 10 + "px")
+                        .style("top", event.pageY - 10 + "px")
+                        .html(`<strong>${d.Town}</strong><br>Year: ${d.Year}<br>Price: SGD ${d.ResalePrice.toLocaleString()}`);
+                })
+                .on("mouseout", () => {
+                    tooltip.style("display", "none");
+                });
+        });
 
-            bars
-                .merge(enter)
-                .transition()
-                .duration(duration)
-                .attr("x", xScale(0))
-                .attr("y", (d) => yScale(d.country))
-                .attr("width", (d) => xScale(d.gdp) - xScale(0))
-                .attr("height", barHeight);
+        const legend = svg.selectAll(".legend")
+            .data(groupedData.map(d => d[0]))
+            .enter()
+            .append("g")
+            .attr("transform", (d, i) => `translate(${width + 30},${i * 20})`);
 
-            bars.exit().remove();
+        legend.append("rect")
+            .attr("x", 0)
+            .attr("y", 0)
+            .attr("width", 10)
+            .attr("height", 10)
+            .style("fill", d => colorScale(d));
 
-            const labels = svg.selectAll(".label").data(data, (d) => d.country);
-
-            const enterLabels = labels
-                .enter()
-                .append("text")
-                .attr("class", "label")
-                .attr("x", (d) => xScale(d.gdp) + 5)
-                .attr("y", (d) => yScale(d.country) + barHeight / 2 + 5)
-                .text((d) => `${d.country}: ${d.gdp.toFixed(2)}`);
-
-            labels
-                .merge(enterLabels)
-                .transition()
-                .duration(duration)
-                .attr("x", (d) => xScale(d.gdp) + 5)
-                .attr("y", (d) => yScale(d.country) + barHeight / 2 + 5)
-                .text((d) => `${d.country}: ${d.gdp.toFixed(2)}`);
-
-            labels.exit().remove();
-        };
-
-        let yearIndex = 0;
-        setInterval(() => {
-            updateChart(yearIndex);
-            yearIndex = (yearIndex + 1) % years.length;
-        }, duration);
+        legend.append("text")
+            .attr("x", 15)
+            .attr("y", 10)
+            .text(d => d)
+            .attr("text-anchor", "start");
     </script>
 </body>
 </html>
